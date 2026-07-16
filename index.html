@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>西藏支教 · 行李准备助手</title>
+
+<!-- ====== PWA Meta ====== -->
+<meta name="theme-color" content="#4A90D9">
+<meta name="description" content="西藏支教行李准备清单 — 智能分类、一键导出、离线可用">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="行李助手">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="行李助手">
+
+<!-- ====== Icons & Manifest ====== -->
+<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+/* ============================================================
+   DESIGN TOKENS — 设计令牌
+   ============================================================ */
+:root {
+  /* 颜色 */
+  --c-bg:         #f4f7fa;
+  --c-surface:    rgba(255,255,255,0.58);
+  --c-border:     rgba(255,255,255,0.55);
+  --c-border-hi:  rgba(255,255,255,0.85);
+  --c-accent:     #6a98b4;
+  --c-accent-dim: #8ab4cc;
+  --c-green:      #5c9e82;
+  --c-green-dim:  #8cc4aa;
+  --c-text:       #1a1d20;
+  --c-text-2:     #5a5f66;
+  --c-text-3:     #9298a0;
+  --c-text-4:     #b0b8c0;
+  --c-divider:    #eaecf0;
+  --c-check-fill: #5a8ea8;
+  --c-star:       #c8c8c8;
+
+  /* 字体 */
+  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  --fz-xs:   0.6875rem;   /* 11px */
+  --fz-sm:   0.75rem;     /* 12px */
+  --fz-base: 0.875rem;    /* 14px */
+  --fz-md:   0.9375rem;   /* 15px */
+  --fz-lg:   1.0625rem;   /* 17px */
+  --fz-xl:   1.375rem;    /* 22px */
+  --fz-2xl:  1.625rem;    /* 26px */
+  --fz-3xl:  3rem;        /* 48px */
+  --lh-tight: 1.15;
+  --lh-base:  1.55;
+
+  /* 间距（4px 网格） */
+  --s-1:  4px;  --s-2:  8px;  --s-3:  12px;
+  --s-4:  16px; --s-5:  20px; --s-6:  24px;
+  --s-8:  32px; --s-10: 40px;
+
+  /* 圆角 */
+  --r-sm: 10px; --r-lg: 20px; --r-xl: 24px;
+
+  /* 阴影 */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,.03);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.035), 0 2px 8px rgba(0,0,0,.04);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.04), 0 8px 20px rgba(0,0,0,.055);
+
+  /* 缓动曲线 */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+.hidden { display: none !important; }
+
+/* ============================================================
+   RESET & BASE — 重置与基础
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fz-md);
+  line-height: var(--lh-base);
+  color: var(--c-text);
+  background: var(--c-bg);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   BACKGROUND — 雪山背景
+   ============================================================ */
+
+/* 远山 + 中景山峰 + 雪冠高光 + 天空渐变 */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    /* 远山 */
+    radial-gradient(ellipse 100% 50% at 50% 100%, rgba(160,195,215,.35) 0%, transparent 70%),
+    /* 中景左右两峰 */
+    radial-gradient(ellipse 70% 32% at 28% 96%, rgba(155,192,212,.30) 0%, transparent 62%),
+    radial-gradient(ellipse 65% 30% at 72% 97%, rgba(160,198,218,.28) 0%, transparent 60%),
+    /* 雪冠 */
+    radial-gradient(ellipse 26% 12% at 34% 87%, rgba(255,255,255,.50) 0%, transparent 68%),
+    radial-gradient(ellipse 22% 10% at 66% 89%, rgba(255,255,255,.45) 0%, transparent 65%),
+    /* 天空水洗 */
+    linear-gradient(182deg, rgba(218,230,240,.25) 0%, rgba(245,248,251,.08) 48%, rgba(208,222,236,.30) 100%);
+}
+
+/* 浮雪粒子 */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 16%, rgba(255,255,255,.65) 50%, transparent 50%),
+    radial-gradient(1px   1px   at 26% 30%, rgba(255,255,255,.55) 50%, transparent 50%),
+    radial-gradient(2px   2px   at 54% 20%, rgba(255,255,255,.50) 50%, transparent 50%),
+    radial-gradient(1px   1px   at 70% 14%, rgba(255,255,255,.60) 50%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 84% 26%, rgba(255,255,255,.52) 50%, transparent 50%),
+    radial-gradient(1px   1px   at 40%  8%, rgba(255,255,255,.55) 50%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 16% 40%, rgba(255,255,255,.48) 50%, transparent 50%),
+    radial-gradient(1px   1px   at 66% 36%, rgba(255,255,255,.50) 50%, transparent 50%),
+    radial-gradient(2px   2px   at 90% 10%, rgba(255,255,255,.42) 50%, transparent 50%),
+    radial-gradient(1px   1px   at 33% 24%, rgba(255,255,255,.48) 50%, transparent 50%);
+  animation: snowDrift 24s ease-in-out infinite;
+}
+
+@keyframes snowDrift {
+  0%, 100% { opacity: .55; transform: translateY(0); }
+  50%      { opacity: 1;   transform: translateY(-8px); }
+}
+
+/* ============================================================
+   LAYOUT — 主布局
+   ============================================================ */
+.app {
+  position: relative; z-index: 1;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--s-8) var(--s-5) var(--s-10);
+}
+
+/* 平板及以上 */
+@media (min-width: 600px) {
+  .app {
+    max-width: 900px;
+    padding: var(--s-8) var(--s-8) var(--s-10);
+  }
+}
+
+@media (min-width: 768px) {
+  .app {
+    padding: var(--s-10) var(--s-10) var(--s-12);
+  }
+}
+
+/* ============================================================
+   HEADER — 页头
+   ============================================================ */
+.header {
+  text-align: center;
+  padding: var(--s-8) 0 var(--s-6);
+}
+
+.header-icon {
+  display: block;
+  font-size: 42px;
+  margin-bottom: var(--s-3);
+  filter: drop-shadow(0 3px 10px rgba(106,152,180,.22));
+  animation: headerFloat 4.5s ease-in-out infinite;
+}
+
+@keyframes headerFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%      { transform: translateY(-6px) rotate(.5deg); }
+  66%      { transform: translateY(-2px) rotate(-.3deg); }
+}
+
+.header h1 {
+  font-size: var(--fz-2xl);
+  font-weight: 700;
+  letter-spacing: .015em;
+  color: var(--c-text);
+  line-height: var(--lh-tight);
+}
+
+.header .subtitle {
+  font-size: var(--fz-sm);
+  font-weight: 500;
+  color: var(--c-accent);
+  letter-spacing: .22em;
+  margin-top: var(--s-1);
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   COUNTDOWN CARD — 倒计时卡片
+   ============================================================ */
+.countdown-card {
+  text-align: center;
+  padding: var(--s-8) var(--s-6) var(--s-6);
+  margin-bottom: var(--s-4);
+  background: var(--c-surface);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-sm);
+  transition: border-color .6s var(--ease-out), box-shadow .35s var(--ease-out);
+}
+
+.countdown-card:hover { box-shadow: var(--shadow-md); }
+
+/* 出发后状态 */
+.countdown-card.departed { border-color: rgba(106,152,180,.25); }
+
+.countdown-card .cd-label {
+  font-size: var(--fz-xs);
+  font-weight: 600;
+  color: var(--c-text-4);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.countdown-card .cd-number {
+  display: block;
+  font-size: var(--fz-3xl);
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: var(--lh-tight);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
+  margin: var(--s-1) 0 var(--s-2);
+  transition: color .5s var(--ease-out);
+}
+
+.countdown-card.departed .cd-number { color: var(--c-accent); }
+
+.countdown-card .cd-date {
+  font-size: var(--fz-sm);
+  color: var(--c-text-2);
+}
+
+/* ============================================================
+   STATS GRID — 统计卡片组
+   ============================================================ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+
+.stat-box {
+  text-align: center;
+  padding: var(--s-4) var(--s-1) var(--s-3);
+  background: var(--c-surface);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  transition: transform .25s var(--ease-out), box-shadow .25s var(--ease-out);
+}
+
+.stat-box:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-box .stat-num {
+  display: block;
+  font-size: var(--fz-xl);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-box .stat-num.total  { color: var(--c-text); }
+.stat-box .stat-num.done   { color: var(--c-green);   transition: color .3s var(--ease-out); }
+.stat-box .stat-num.remain { color: var(--c-text-2);  transition: color .3s var(--ease-out); }
+.stat-box .stat-num.rate   { color: var(--c-accent);  transition: color .3s var(--ease-out); }
+
+.stat-box .stat-label {
+  display: block;
+  font-size: var(--fz-xs);
+  font-weight: 600;
+  color: var(--c-text-4);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-top: var(--s-1);
+}
+
+/* 完成率进度条（底部） */
+.stat-box.rate-box {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-box.rate-box::before {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--c-divider);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+
+.stat-box.rate-box::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0;
+  height: 3px;
+  width: 0%; /* 由 JS 动态设置 */
+  background: linear-gradient(90deg, var(--c-accent), var(--c-green-dim), var(--c-accent));
+  background-size: 200% 100%;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  transition: width .7s var(--ease-out);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* 完成率弹跳动画 */
+.stat-box.rate-pop .stat-num.rate {
+  animation: ratePop .55s var(--ease-spring);
+}
+
+@keyframes ratePop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.28); color: var(--c-green); }
+  100% { transform: scale(1); }
+}
+
+/* ============================================================
+   ACTION BAR — 全选 / 取消全选
+   ============================================================ */
+.action-bar {
+  display: flex;
+  gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+
+.action-btn {
+  flex: 1;
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  font-family: inherit;
+  font-size: var(--fz-sm);
+  font-weight: 600;
+  color: var(--c-text-2);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--shadow-xs);
+  transition: background .2s var(--ease-out), color .2s var(--ease-out),
+              border-color .2s var(--ease-out), transform .2s var(--ease-out),
+              box-shadow .2s var(--ease-out);
+}
+
+.action-btn:hover {
+  background: rgba(255,255,255,.7);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.action-btn:active {
+  transform: scale(.97);
+  transition: transform .1s var(--ease-out);
+}
+
+.btn-select-all:hover  { color: var(--c-green);  border-color: rgba(92,158,130,.3); }
+.btn-deselect-all:hover { color: var(--c-accent); border-color: rgba(106,152,180,.3); }
+
+@media (max-width: 480px) {
+  .action-btn { padding: var(--s-2) var(--s-3); font-size: var(--fz-xs); }
+}
+
+/* ============================================================
+   CRITICAL ITEMS — 必须确认
+   ============================================================ */
+.critical-card {
+  margin-bottom: var(--s-4);
+  background: var(--c-surface);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid rgba(255,180,140,.35);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  transition: border-color .5s var(--ease-out);
+}
+.critical-card.search-hidden { display: none; }
+
+/* 全部确认后边框变绿 */
+.critical-card.all-done { border-color: rgba(92,158,130,.35); }
+
+.critical-head {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) var(--s-5);
+  font-size: var(--fz-xs);
+  font-weight: 700;
+  color: #c0825a;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-bottom: 1px solid rgba(0,0,0,.03);
+}
+
+.critical-head .critical-icon {
+  font-size: 14px;
+}
+
+.critical-body {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: var(--s-3) var(--s-5) var(--s-4);
+}
+
+.critical-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 6px; border-radius: var(--r-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .18s var(--ease-out);
+  min-width: 0;
+}
+.critical-item:hover  { background: rgba(0,0,0,.02); }
+.critical-item:active { background: rgba(0,0,0,.04); }
+
+.critical-item .cb {
+  width: 18px; height: 18px;
+  border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--c-text-4); background: transparent;
+  cursor: pointer; position: relative;
+  transition: border-color .2s var(--ease-out), background .2s var(--ease-out), transform .35s var(--ease-spring);
+}
+.critical-item .cb:hover  { border-color: #c0825a; transform: scale(1.1); }
+.critical-item .cb:active { transform: scale(.85); }
+
+.critical-item .cb.checked {
+  background: #c0825a; border-color: #c0825a;
+  animation: cbBounce .45s var(--ease-spring);
+}
+.critical-item .cb.checked::after {
+  content: ''; position: absolute;
+  inset: 2px 4px auto auto;
+  width: 4px; height: 8px;
+  border: solid #fff; border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+  animation: checkDraw .25s var(--ease-out) both;
+}
+
+.critical-item .ci-name {
+  font-size: var(--fz-sm); color: var(--c-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.critical-item.done .ci-name { color: var(--c-text-3); text-decoration: line-through; }
+.critical-item.search-hidden { display: none; }
+
+/* 重要物品中的搜索高亮 */
+.ci-name mark {
+  background: rgba(192,130,90,.20); color: var(--c-text); border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* ============================================================
+   SEARCH — 搜索框
+   ============================================================ */
+.search-wrap {
+  position: relative;
+  margin-bottom: var(--s-4);
+  background: var(--c-surface);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow .3s var(--ease-out), transform .3s var(--ease-out), border-color .3s var(--ease-out);
+}
+
+.search-wrap:focus-within {
+  box-shadow: var(--shadow-md), 0 0 0 3px rgba(106,152,180,.12);
+  transform: translateY(-1px);
+  border-color: var(--c-border-hi);
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+}
+
+/* SVG 放大镜图标 */
+.search-icon {
+  display: flex;
+  align-items: center;
+  color: var(--c-text-4);
+  flex-shrink: 0;
+  transition: color .3s var(--ease-out), transform .3s var(--ease-out);
+}
+
+.search-wrap:focus-within .search-icon {
+  color: var(--c-accent);
+  transform: scale(1.1);
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: var(--fz-md);
+  font-family: inherit;
+  color: var(--c-text);
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--c-text-4);
+  font-weight: 400;
+}
+
+/* 清除按钮 */
+.search-clear {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--c-divider);
+  color: var(--c-text-3);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .2s var(--ease-out), transform .2s var(--ease-out);
+}
+
+.search-clear:hover  { background: #dde0e4; transform: scale(1.08); }
+.search-clear:active { transform: scale(.94); }
+
+/* 有输入内容时显示 */
+.search-clear.visible { display: flex; }
+
+/* 搜索结果提示 */
+.search-hint {
+  text-align: center;
+  font-size: var(--fz-xs);
+  color: var(--c-text-4);
+  padding: 0 0 var(--s-2);
+}
+
+/* ============================================================
+   CATEGORIES — 分类卡片
+   ============================================================ */
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.cat-card {
+  background: var(--c-surface);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  transition: box-shadow .3s var(--ease-out), border-color .3s var(--ease-out);
+}
+
+.cat-card:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--c-border-hi);
+}
+
+/* 分类标题行 */
+.cat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-4) var(--s-5);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .2s var(--ease-out);
+}
+
+.cat-head:hover  { background: rgba(255,255,255,.35); }
+.cat-head:active { background: rgba(255,255,255,.55); }
+
+.cat-head-left  { display: flex; align-items: center; gap: var(--s-3); }
+.cat-head-right { display: flex; align-items: center; gap: var(--s-2); }
+
+/* 分类图标 */
+.cat-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
+  flex-shrink: 0;
+}
+
+.cat-icon.docs   { background: rgba(106,152,180,.12); }
+.cat-icon.elec   { background: rgba(120,165,195,.12); }
+.cat-icon.train  { background: rgba(112,160,188,.12); }
+.cat-icon.living { background: rgba(115,158,190,.12); }
+.cat-icon.teach  { background: rgba(140,175,140,.12); }
+.cat-icon.local  { background: rgba(180,160,130,.12); }
+
+.cat-name {
+  font-size: var(--fz-md);
+  font-weight: 600;
+  color: var(--c-text);
+  letter-spacing: .01em;
+}
+
+/* 分类计数徽章 */
+.cat-badge {
+  font-size: var(--fz-xs);
+  font-weight: 600;
+  color: var(--c-text-3);
+  background: rgba(0,0,0,.04);
+  padding: 3px 10px;
+  border-radius: 999px;
+  transition: color .3s var(--ease-out), background .3s var(--ease-out);
+}
+
+/* 该分类全部完成时变绿 */
+.cat-badge.complete {
+  color: var(--c-green);
+  background: rgba(92,158,130,.1);
+}
+
+/* 折叠箭头 */
+.cat-chevron {
+  font-size: 12px;
+  color: var(--c-text-4);
+  transition: transform .35s var(--ease-out);
+}
+
+.cat-card.open .cat-chevron { transform: rotate(180deg); }
+
+/* 折叠内容区 */
+.cat-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .4s var(--ease-out);
+}
+
+.cat-card.open .cat-body { max-height: 9000px; }
+
+.cat-body-inner { padding: 0 var(--s-5) var(--s-4); }
+
+/* ============================================================
+   ITEMS — 物品行
+   ============================================================ */
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 8px 6px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .18s var(--ease-out);
+}
+
+.item-row:hover  { background: rgba(0,0,0,.028); }
+.item-row:active { background: rgba(0,0,0,.05); }
+
+/* 复选框 — Apple 风格圆形 */
+.cb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--c-text-4);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: border-color .2s var(--ease-out), background .2s var(--ease-out), transform .35s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cb:hover  { border-color: var(--c-accent); transform: scale(1.1); }
+.cb:active { transform: scale(.88); }
+
+/* 勾选状态 */
+.cb.checked {
+  background: var(--c-check-fill);
+  border-color: var(--c-check-fill);
+  animation: cbBounce .45s var(--ease-spring);
+}
+
+@keyframes cbBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(.78); }
+  70%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* 对勾 */
+.cb.checked::after {
+  content: '';
+  position: absolute;
+  inset: 3px 5px auto auto;
+  width: 5px; height: 9px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+  animation: checkDraw .25s var(--ease-out) both;
+}
+
+@keyframes checkDraw {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+/* 点击涟漪 */
+@keyframes cbRipple {
+  0%   { transform: scale(.6); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.item-name {
+  flex: 1;
+  font-size: var(--fz-base);
+  color: var(--c-text);
+  line-height: var(--lh-base);
+}
+
+/* 搜索高亮 */
+.item-name mark {
+  background: rgba(106,152,180,.18);
+  color: var(--c-text);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* 重要性星级 */
+.item-stars {
+  font-size: 10px;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  color: var(--c-star);
+  filter: grayscale(.3);
+}
+
+/* 子分类标题（生活用品下的药品/衣物/洗护/…） */
+.sub-head {
+  font-size: var(--fz-xs);
+  font-weight: 700;
+  color: var(--c-text-4);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  padding: var(--s-3) 6px var(--s-1);
+}
+
+.sub-head:first-child { padding-top: var(--s-1); }
+
+/* ============================================================
+   NO RESULT — 搜索无结果
+   ============================================================ */
+.no-result {
+  text-align: center;
+  padding: var(--s-10) var(--s-5);
+  color: var(--c-text-3);
+  font-size: var(--fz-base);
+}
+
+/* ============================================================
+   FOOTER — 页脚
+   ============================================================ */
+.footer {
+  text-align: center;
+  padding: var(--s-10) 0 var(--s-4);
+}
+
+.footer-text {
+  font-size: var(--fz-base);
+  font-weight: 500;
+  color: var(--c-accent-dim);
+  letter-spacing: .05em;
+}
+
+.footer-line {
+  width: 24px; height: 2px;
+  margin: var(--s-3) auto 0;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-accent-dim), transparent);
+}
+
+/* ============================================================
+   ENTRANCE ANIMATIONS — 入场动画
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.header,
+.countdown-card,
+.stats-grid,
+.action-bar,
+.critical-card,
+.search-wrap,
+.cat-card,
+.footer {
+  animation: fadeUp .6s var(--ease-out) both;
+}
+
+/* 依次入场（staggered） */
+.countdown-card        { animation-delay: .04s; }
+.stats-grid            { animation-delay: .08s; }
+.action-bar            { animation-delay: .10s; }
+.critical-card         { animation-delay: .12s; }
+.search-wrap           { animation-delay: .16s; }
+.cat-card:nth-child(1) { animation-delay: .19s; }
+.cat-card:nth-child(2) { animation-delay: .19s; }
+.cat-card:nth-child(3) { animation-delay: .23s; }
+.cat-card:nth-child(4) { animation-delay: .23s; }
+.cat-card:nth-child(5) { animation-delay: .27s; }
+.cat-card:nth-child(6) { animation-delay: .27s; }
+.footer                { animation-delay: .38s; }
+
+/* ============================================================
+   RESPONSIVE — 响应式
+   ============================================================ */
+
+/* ---- 手机（默认 ≤480px，即 CSS 中未覆写的基准样式）---- */
+
+/* ---- 平板 ≥600px ---- */
+@media (min-width: 600px) {
+  .header-icon { font-size: 52px; }
+  .header h1   { font-size: 2rem; }
+  .header .subtitle { font-size: var(--fz-base); }
+
+  .countdown-card { padding: var(--s-10) var(--s-8) var(--s-8); }
+  .countdown-card .cd-number { font-size: 3.5rem; }
+
+  .stats-grid { gap: var(--s-3); }
+  .stat-box { padding: var(--s-5) var(--s-2) var(--s-4); }
+  .stat-box .stat-num { font-size: 1.625rem; }
+
+  .critical-body { grid-template-columns: repeat(5, 1fr); padding: var(--s-3) var(--s-6) var(--s-4); }
+  .critical-head { padding: var(--s-3) var(--s-6); }
+}
+
+/* ---- 桌面 ≥768px：分类双列 ---- */
+@media (min-width: 768px) {
+  .header { padding: var(--s-10) 0 var(--s-8); }
+  .header-icon { font-size: 60px; }
+  .header h1   { font-size: 2.25rem; }
+
+  .countdown-card .cd-number { font-size: 4rem; }
+
+  .critical-body { grid-template-columns: repeat(5, 1fr); }
+
+  .search-row { padding: var(--s-4) var(--s-5); }
+
+  /* 分类区双列 */
+  .categories {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s-3);
+  }
+
+  .cat-card { margin-bottom: 0; }
+
+  .item-row { padding: 9px 8px; }
+}
+
+/* ---- 大屏 ≥1024px ---- */
+@media (min-width: 1024px) {
+  .categories { gap: var(--s-4); }
+  .cat-head { padding: var(--s-4) var(--s-6); }
+  .cat-body-inner { padding: 0 var(--s-6) var(--s-5); }
+
+  .critical-body { padding: var(--s-4) var(--s-8) var(--s-5); }
+  .critical-head { padding: var(--s-4) var(--s-8); }
+}
+
+/* ---- 特窄屏 ≤380px：统计 2×2 ---- */
+@media (max-width: 380px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-box .stat-num { font-size: 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== 页头 ===== -->
+  <header class="header">
+    <span class="header-icon">🏔️</span>
+    <h1>西藏支教 · 行李准备助手</h1>
+    <p class="subtitle">2026 · 昌都</p>
+  </header>
+
+  <!-- ===== 倒计时 ===== -->
+  <div class="countdown-card" id="countdownCard">
+    <div class="cd-label" id="cdLabel">距离出发</div>
+    <span class="cd-number" id="cdNumber">--</span>
+    <div class="cd-date" id="cdDate">2026年7月21日</div>
+  </div>
+
+  <!-- ===== 统计 ===== -->
+  <div class="stats-grid">
+    <div class="stat-box">
+      <span class="stat-num total" id="statTotal">0</span>
+      <span class="stat-label">总物品</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num done" id="statDone">0</span>
+      <span class="stat-label">已准备</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num remain" id="statRemain">0</span>
+      <span class="stat-label">剩余</span>
+    </div>
+    <div class="stat-box rate-box">
+      <span class="stat-num rate" id="statRate">0%</span>
+      <span class="stat-label">完成率</span>
+    </div>
+  </div>
+
+  <!-- ===== 全选 / 取消全选 ===== -->
+  <div class="action-bar" id="actionBar">
+    <button class="action-btn btn-select-all" id="btnSelectAll">✅ 全部勾选</button>
+    <button class="action-btn btn-deselect-all" id="btnDeselectAll">🔄 取消全选</button>
+  </div>
+
+  <!-- ===== 必须确认 · 重要物品 ===== -->
+  <div class="critical-card" id="criticalCard">
+    <div class="critical-head">
+      <span class="critical-icon">⚠️</span>
+      <span>必须确认</span>
+      <span style="font-weight:400;color:var(--c-text-4);margin-left:auto;" id="criticalBadge">0/10</span>
+    </div>
+    <div class="critical-body" id="criticalBody"></div>
+  </div>
+
+  <!-- ===== 搜索 ===== -->
+  <div class="search-wrap">
+    <div class="search-row">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+      </span>
+      <input type="text" class="search-input" id="searchInput" placeholder="搜索物品…" autocomplete="off">
+      <button class="search-clear" id="searchClear" aria-label="清除搜索">✕</button>
+    </div>
+  </div>
+  <div class="search-hint hidden" id="searchHint"></div>
+
+  <!-- ===== 分类列表（JS 动态渲染） ===== -->
+  <div class="categories" id="categories"></div>
+
+  <!-- ===== 搜索无结果 ===== -->
+  <div class="no-result hidden" id="noResult">没有找到匹配的物品</div>
+
+  <!-- ===== 页脚 ===== -->
+  <footer class="footer">
+    <p class="footer-text">愿你翻越山海，奔赴热爱。</p>
+    <div class="footer-line"></div>
+  </footer>
+
+</div>
+
+<script>
+/* ================================================================
+   西藏支教 · 行李准备助手
+   纯前端离线网页 — 双击 index.html 即可使用
+   ================================================================ */
+
+// ==================== 配置（修改日期只需改这一行）====================
+var DEPARTURE = '2026-07-21';
+
+// ==================== 物资数据 =====================================
+// 结构：
+//   { id, name, icon, iconClass, items: [...] }        — 扁平分类
+//   { id, name, icon, iconClass, subs: [{name, items}] } — 含子分类
+// 修改物资：直接在对应数组中增删字符串即可
+
+var CATEGORIES = [
+  {
+    id: 'docs',
+    name: '证件',
+    icon: '🪪',
+    iconClass: 'docs',
+    items: [
+      '身份证',
+      '身份证复印件×3',
+      '户口本复印件×3',
+      '银行卡',
+      '现金',
+      '证件照',
+      '支教团材料（体检报告）'
+    ]
+  },
+  {
+    id: 'elec',
+    name: '电子产品',
+    icon: '💻',
+    iconClass: 'elec',
+    items: [
+      '手机',
+      '电脑',
+      '平板',
+      '手表',
+      'DJI Action5Pro',
+      '键盘',
+      '鼠标',
+      'U盘',
+      '移动硬盘',
+      '耳机×2',
+      '充电器×4',
+      '充电宝×2',
+      '插线板'
+    ]
+  },
+  {
+    id: 'train',
+    name: '火车用品',
+    icon: '🚄',
+    iconClass: 'train',
+    items: [
+      '压缩毛巾',
+      '一次性牙刷',
+      '一次性3件套',
+      '漱口水',
+      '床帘',
+      '水杯',
+      '湿巾',
+      '纸巾',
+      '零食',
+      '扑克'
+    ]
+  },
+  {
+    id: 'living',
+    name: '生活用品',
+    icon: '🧴',
+    iconClass: 'living',
+    subs: [
+      { name: '药品', items: [
+        '药品包（蓓）','消毒包','口罩','棉签','体温计'
+      ]},
+      { name: '衣物', items: [
+        '羽绒服×2','支教团冲锋衣（ZZU）','支教团短袖',
+        '短袖×3','长袖×2','长裤×3','保暖内衣×2',
+        '睡衣短裤×1','内裤','袜子','鞋×2','拖鞋×1',
+        '防晒衣','帽子','手套','墨镜','冰袖'
+      ]},
+      { name: '洗护', items: [
+        '牙刷','牙膏','洗发水（小样）','沐浴露（小样）','洗衣液（小样）',
+        '润唇膏','防晒霜','剃须刀','指甲刀'
+      ]},
+      { name: '宿舍', items: [
+        '粘钩'
+      ]}
+    ]
+  },
+  {
+    id: 'teach',
+    name: '教学',
+    icon: '📚',
+    iconClass: 'teach',
+    items: [
+      '黑笔',
+      '红笔',
+      '笔记本'
+    ]
+  },
+  {
+    id: 'local',
+    name: '当地购买',
+    icon: '🛒',
+    iconClass: 'local',
+    items: [
+      '洗衣液',
+      '卫生纸',
+      '抽纸',
+      '垃圾桶',
+      '垃圾袋',
+      '扫把',
+      '拖把',
+      '毛巾',
+      '浴巾',
+      '洗面奶',
+      '洗发水',
+      '沐浴露',
+      '插排'
+    ]
+  }
+];
+
+// ==================== 重要性映射（⭐ 数量）============================
+// ⭐⭐⭐ = 极重要    ⭐⭐ = 重要（默认）
+var IMPORTANCE = {
+  '身份证':3, '支教团材料（体检报告）':3,
+  '手机':3, '电脑':3, '充电器×4':3, '充电宝×2':3,
+  '口罩':3, '羽绒服×2':3, '支教团冲锋衣（ZZU）':3, '支教团短袖':3,
+  // 其余物品默认 2 星，无需逐个列出；在此仅列出特殊项
+};
+
+// ==================== 重要物品置顶 ==================================
+// 每一项：[物品名称, 所属分类ID]
+// 修改规则：直接从数组增删即可，名称和分类 ID 必须与 CATEGORIES 中一致
+var CRITICAL_ITEMS = [
+  ['身份证',                'docs'],
+  ['支教团材料（体检报告）',  'docs'],
+  ['手机',                  'elec'],
+  ['电脑',                  'elec'],
+  ['充电器×4',              'elec'],
+  ['充电宝×2',              'elec'],
+  ['口罩',                  'living'],
+  ['羽绒服×2',              'living'],
+  ['支教团冲锋衣（ZZU）',    'living'],
+  ['支教团短袖',            'living']
+];
+
+// ==================== 工具函数 =====================================
+
+/**
+ * 获取分类下所有物品名称的扁平数组
+ */
+function getCatItems(cat) {
+  if (cat.items) return cat.items;
+  if (cat.subs) {
+    var result = [];
+    cat.subs.forEach(function(sub) {
+      result = result.concat(sub.items);
+    });
+    return result;
+  }
+  return [];
+}
+
+/** HTML 转义 */
+function escapeHTML(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/** 获取物品的星级字符串 */
+function getStars(name) {
+  var n = IMPORTANCE[name] || 2;
+  var s = '';
+  for (var i = 0; i < n; i++) s += '⭐';
+  return s;
+}
+
+// ==================== 总数 =========================================
+var TOTAL = 0;
+CATEGORIES.forEach(function(cat) {
+  TOTAL += getCatItems(cat).length;
+});
+
+// ==================== LocalStorage 持久化 ===========================
+var LS_PREFIX = 'luggage_v3_';
+
+function lsMakeKey(catId, itemName) {
+  return LS_PREFIX + catId + '_' + encodeURIComponent(itemName);
+}
+
+/** 读取勾选状态 */
+function lsIsChecked(catId, itemName) {
+  return localStorage.getItem(lsMakeKey(catId, itemName)) === '1';
+}
+
+/** 写入勾选状态 */
+function lsSetChecked(catId, itemName, checked) {
+  if (checked) {
+    localStorage.setItem(lsMakeKey(catId, itemName), '1');
+  } else {
+    localStorage.removeItem(lsMakeKey(catId, itemName));
+  }
+}
+
+/** 统计已勾选总数 */
+function countAllChecked() {
+  var n = 0;
+  CATEGORIES.forEach(function(cat) {
+    getCatItems(cat).forEach(function(name) {
+      if (lsIsChecked(cat.id, name)) n++;
+    });
+  });
+  return n;
+}
+
+// ==================== 折叠状态（内存，刷新重置为全展开）=================
+var collapsed = {};
+
+// ==================== 渲染 =========================================
+
+/** 渲染单个物品行 */
+function renderItem(catId, name) {
+  var checked = lsIsChecked(catId, name);
+  return [
+    '<div class="item-row" data-cat="' + catId + '" data-name="' + escapeHTML(name) + '">',
+      '<div class="cb' + (checked ? ' checked' : '') + '"',
+        ' data-cat="' + catId + '"',
+        ' data-name="' + escapeHTML(name) + '"',
+        ' role="checkbox"',
+        ' aria-checked="' + checked + '"></div>',
+      '<span class="item-name">' + escapeHTML(name) + '</span>',
+      '<span class="item-stars">' + getStars(name) + '</span>',
+    '</div>'
+  ].join('');
+}
+
+/** 渲染一个分类卡片 */
+function renderCategory(cat) {
+  var itemsHTML = '';
+
+  if (cat.items) {
+    // 扁平分类
+    cat.items.forEach(function(name) {
+      itemsHTML += renderItem(cat.id, name);
+    });
+  } else if (cat.subs) {
+    // 含子分类
+    cat.subs.forEach(function(sub) {
+      itemsHTML += '<div class="sub-head">' + escapeHTML(sub.name) + '</div>';
+      sub.items.forEach(function(name) {
+        itemsHTML += renderItem(cat.id, name);
+      });
+    });
+  }
+
+  var allItems = getCatItems(cat);
+  var totalInCat = allItems.length;
+  var checkedInCat = 0;
+  allItems.forEach(function(name) {
+    if (lsIsChecked(cat.id, name)) checkedInCat++;
+  });
+  var allDone = totalInCat > 0 && checkedInCat === totalInCat;
+  var isOpen = !collapsed[cat.id];
+
+  return [
+    '<div class="cat-card' + (isOpen ? ' open' : '') + '" data-cat="' + cat.id + '">',
+      '<div class="cat-head" data-toggle="' + cat.id + '">',
+        '<div class="cat-head-left">',
+          '<div class="cat-icon ' + cat.iconClass + '">' + cat.icon + '</div>',
+          '<span class="cat-name">' + escapeHTML(cat.name) + '</span>',
+        '</div>',
+        '<div class="cat-head-right">',
+          '<span class="cat-badge' + (allDone ? ' complete' : '') + '">' + checkedInCat + '/' + totalInCat + '</span>',
+          '<span class="cat-chevron">▾</span>',
+        '</div>',
+      '</div>',
+      '<div class="cat-body"><div class="cat-body-inner">' + itemsHTML + '</div></div>',
+    '</div>'
+  ].join('');
+}
+
+/** 全量重绘分类区 */
+function renderAllCategories() {
+  var html = '';
+  CATEGORIES.forEach(function(cat) {
+    html += renderCategory(cat);
+  });
+  document.getElementById('categories').innerHTML = html;
+  bindAllCheckboxes();
+  bindAllToggles();
+  refreshStats();
+}
+
+// ==================== 重要物品置顶渲染 ==============================
+
+function renderCritical() {
+  var body = document.getElementById('criticalBody');
+  if (!body) return;
+
+  var html = '';
+  CRITICAL_ITEMS.forEach(function(item) {
+    var name = item[0];
+    var catId = item[1];
+    var checked = lsIsChecked(catId, name);
+    html += [
+      '<div class="critical-item' + (checked ? ' done' : '') + '" data-cat="' + catId + '" data-name="' + escapeHTML(name) + '">',
+        '<div class="cb' + (checked ? ' checked' : '') + '"',
+          ' data-cat="' + catId + '"',
+          ' data-name="' + escapeHTML(name) + '"',
+          ' role="checkbox"',
+          ' aria-checked="' + checked + '"></div>',
+        '<span class="ci-name">' + escapeHTML(name) + '</span>',
+      '</div>'
+    ].join('');
+  });
+
+  body.innerHTML = html;
+  bindCriticalCheckboxes();
+  refreshCriticalBadge();
+}
+
+function bindCriticalCheckboxes() {
+  document.querySelectorAll('.critical-item').forEach(function(row) {
+    row.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var cb = this.querySelector('.cb');
+      var catId = this.dataset.cat;
+      var itemName = this.dataset.name;
+      var nowChecked = !cb.classList.contains('checked');
+
+      lsSetChecked(catId, itemName, nowChecked);
+
+      if (nowChecked) {
+        cb.classList.add('checked');
+        cb.setAttribute('aria-checked', 'true');
+        this.classList.add('done');
+      } else {
+        cb.classList.remove('checked');
+        cb.setAttribute('aria-checked', 'false');
+        this.classList.remove('done');
+      }
+
+      refreshStats();
+      refreshCriticalBadge();
+
+      // 同步更新分类区中同名 checkbox
+      var catRow = document.querySelector('.item-row[data-name="' + escapeHTML(itemName) + '"][data-cat="' + catId + '"]');
+      if (catRow) {
+        var catCb = catRow.querySelector('.cb');
+        if (nowChecked) {
+          catCb.classList.add('checked');
+          catCb.setAttribute('aria-checked', 'true');
+        } else {
+          catCb.classList.remove('checked');
+          catCb.setAttribute('aria-checked', 'false');
+        }
+      }
+      refreshCatBadge(catId);
+
+      // 涟漪
+      var ripple = document.createElement('span');
+      ripple.style.cssText = 'position:absolute;inset:-4px;border-radius:50%;background:rgba(192,130,90,.15);animation:cbRipple .35s ease-out forwards;pointer-events:none;';
+      cb.appendChild(ripple);
+      ripple.addEventListener('animationend', function() { ripple.remove(); });
+    });
+  });
+}
+
+/** 刷新重要物品计数和卡片状态 */
+function refreshCriticalBadge() {
+  var badge = document.getElementById('criticalBadge');
+  var card = document.getElementById('criticalCard');
+  if (!badge) return;
+  var total = CRITICAL_ITEMS.length;
+  var checked = 0;
+  CRITICAL_ITEMS.forEach(function(item) {
+    if (lsIsChecked(item[1], item[0])) checked++;
+  });
+  badge.textContent = checked + '/' + total;
+  if (checked === total) {
+    card.classList.add('all-done');
+  } else {
+    card.classList.remove('all-done');
+  }
+}
+
+// ==================== 统计刷新 =====================================
+
+/** 上一次完成率（用于判断是否需要弹跳动画） */
+var prevRate = -1;
+
+function refreshStats() {
+  var done = countAllChecked();
+  var remain = TOTAL - done;
+  var rate = TOTAL > 0 ? Math.round(done / TOTAL * 100) : 0;
+
+  document.getElementById('statTotal').textContent = TOTAL;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statRemain').textContent = remain;
+  document.getElementById('statRate').textContent = rate + '%';
+
+  // 完成率卡片底部进度条（动态注入 CSS 覆盖 ::after 的 width）
+  var styleEl = document.getElementById('rate-bar-style');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'rate-bar-style';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = '.stat-box.rate-box::after { width: ' + rate + '%; }';
+
+  // 完成率变化时弹跳
+  if (rate !== prevRate && prevRate >= 0) {
+    var box = document.querySelector('.stat-box.rate-box');
+    box.classList.remove('rate-pop');
+    // 强制回流以重新触发动画
+    void box.offsetWidth;
+    box.classList.add('rate-pop');
+  }
+  prevRate = rate;
+}
+
+/** 刷新单个分类的徽章数字 */
+function refreshCatBadge(catId) {
+  var card = document.querySelector('.cat-card[data-cat="' + catId + '"]');
+  if (!card) return;
+  var cat = null;
+  CATEGORIES.forEach(function(c) { if (c.id === catId) cat = c; });
+  if (!cat) return;
+
+  var items = getCatItems(cat);
+  var checked = 0;
+  items.forEach(function(name) {
+    if (lsIsChecked(catId, name)) checked++;
+  });
+
+  var badge = card.querySelector('.cat-badge');
+  if (!badge) return;
+  badge.textContent = checked + '/' + items.length;
+  if (checked === items.length && items.length > 0) {
+    badge.classList.add('complete');
+  } else {
+    badge.classList.remove('complete');
+  }
+}
+
+// ==================== Checkbox 事件绑定 ============================
+
+function bindAllCheckboxes() {
+  document.querySelectorAll('.cat-card .item-row').forEach(function(row) {
+    row.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var cb = this.querySelector('.cb');
+      var catId = this.dataset.cat;
+      var itemName = this.dataset.name;
+      var nowChecked = !cb.classList.contains('checked');
+
+      // 持久化
+      lsSetChecked(catId, itemName, nowChecked);
+
+      // UI 更新
+      if (nowChecked) {
+        cb.classList.add('checked');
+        cb.setAttribute('aria-checked', 'true');
+      } else {
+        cb.classList.remove('checked');
+        cb.setAttribute('aria-checked', 'false');
+      }
+
+      // 刷新统计
+      refreshStats();
+      refreshCatBadge(catId);
+
+      // 双向同步：如果是重要物品，也刷新置顶卡片
+      var isCritical = CRITICAL_ITEMS.some(function(ci) {
+        return ci[0] === itemName && ci[1] === catId;
+      });
+      if (isCritical) {
+        var criticalRow = document.querySelector('.critical-item[data-name="' + escapeHTML(itemName) + '"][data-cat="' + catId + '"]');
+        if (criticalRow) {
+          var criticalCb = criticalRow.querySelector('.cb');
+          if (nowChecked) {
+            criticalCb.classList.add('checked');
+            criticalCb.setAttribute('aria-checked', 'true');
+            criticalRow.classList.add('done');
+          } else {
+            criticalCb.classList.remove('checked');
+            criticalCb.setAttribute('aria-checked', 'false');
+            criticalRow.classList.remove('done');
+          }
+        }
+        refreshCriticalBadge();
+      }
+
+      // 点击涟漪效果
+      var ripple = document.createElement('span');
+      ripple.style.cssText = [
+        'position:absolute;',
+        'inset:-4px;',
+        'border-radius:50%;',
+        'background:rgba(90,142,168,.15);',
+        'animation:cbRipple .35s ease-out forwards;',
+        'pointer-events:none;'
+      ].join('');
+      cb.appendChild(ripple);
+      ripple.addEventListener('animationend', function() {
+        ripple.remove();
+      });
+    });
+  });
+}
+
+// ==================== 折叠/展开 事件绑定 ============================
+
+function bindAllToggles() {
+  document.querySelectorAll('.cat-head').forEach(function(head) {
+    head.addEventListener('click', function() {
+      var catId = this.dataset.toggle;
+      var card = this.closest('.cat-card');
+      if (card.classList.contains('open')) {
+        card.classList.remove('open');
+        collapsed[catId] = true;
+      } else {
+        card.classList.add('open');
+        delete collapsed[catId];
+      }
+    });
+  });
+}
+
+// ==================== 全选 / 取消全选 ===============================
+
+function selectAll() {
+  CATEGORIES.forEach(function(cat) {
+    getCatItems(cat).forEach(function(name) {
+      lsSetChecked(cat.id, name, true);
+    });
+  });
+  // 重新渲染整个 UI
+  renderAllCategories();
+  renderCritical();
+}
+
+function deselectAll() {
+  CATEGORIES.forEach(function(cat) {
+    getCatItems(cat).forEach(function(name) {
+      lsSetChecked(cat.id, name, false);
+    });
+  });
+  renderAllCategories();
+  renderCritical();
+}
+
+// ==================== 搜索 =========================================
+
+function doSearch(query) {
+  var q = query.trim().toLowerCase();
+  var hintEl = document.getElementById('searchHint');
+  var noResultEl = document.getElementById('noResult');
+  var catsEl = document.getElementById('categories');
+
+  // ---- 清空搜索 ----
+  if (!q) {
+    document.querySelectorAll('.item-row.search-hidden, .sub-head.search-hidden, .cat-card.search-hidden')
+      .forEach(function(el) { el.classList.remove('search-hidden'); });
+
+    // 恢复重要物品卡片
+    var criticalCard = document.getElementById('criticalCard');
+    if (criticalCard) criticalCard.classList.remove('search-hidden');
+    document.querySelectorAll('.critical-item.search-hidden').forEach(function(el) { el.classList.remove('search-hidden'); });
+    document.querySelectorAll('.ci-name mark').forEach(function(m) {
+      m.replaceWith.apply(m, m.childNodes);
+    });
+
+    document.querySelectorAll('.item-name mark').forEach(function(m) {
+      m.replaceWith.apply(m, m.childNodes);
+    });
+    // 恢复折叠状态
+    CATEGORIES.forEach(function(cat) {
+      var card = document.querySelector('.cat-card[data-cat="' + cat.id + '"]');
+      if (!card) return;
+      if (collapsed[cat.id]) {
+        card.classList.remove('open');
+      } else {
+        card.classList.add('open');
+      }
+    });
+    hintEl.classList.add('hidden');
+    noResultEl.classList.add('hidden');
+    document.getElementById('searchClear').classList.remove('visible');
+    catsEl.style.display = '';
+    return;
+  }
+
+  // ---- 执行搜索 ----
+  document.getElementById('searchClear').classList.add('visible');
+  var totalVisible = 0;
+
+  // 搜索重要物品卡片
+  var criticalCard = document.getElementById('criticalCard');
+  var criticalVisible = 0;
+  if (criticalCard) {
+    criticalCard.querySelectorAll('.critical-item').forEach(function(item) {
+      var name = item.dataset.name || '';
+      var nameEl = item.querySelector('.ci-name');
+      var oldMark = nameEl.querySelector('mark');
+      if (oldMark) oldMark.replaceWith.apply(oldMark, oldMark.childNodes);
+
+      if (name.toLowerCase().indexOf(q) !== -1) {
+        item.classList.remove('search-hidden');
+        criticalVisible++;
+        var idx = name.toLowerCase().indexOf(q);
+        nameEl.innerHTML =
+          escapeHTML(name.slice(0, idx)) +
+          '<mark>' + escapeHTML(name.slice(idx, idx + q.length)) + '</mark>' +
+          escapeHTML(name.slice(idx + q.length));
+      } else {
+        item.classList.add('search-hidden');
+      }
+    });
+    if (criticalVisible > 0) {
+      criticalCard.classList.remove('search-hidden');
+      totalVisible += criticalVisible;
+    } else {
+      criticalCard.classList.add('search-hidden');
+    }
+  }
+
+  CATEGORIES.forEach(function(cat) {
+    var card = document.querySelector('.cat-card[data-cat="' + cat.id + '"]');
+    if (!card) return;
+    var catVisible = 0;
+
+    // 匹配物品行
+    card.querySelectorAll('.item-row').forEach(function(row) {
+      var name = row.dataset.name || '';
+      var nameEl = row.querySelector('.item-name');
+
+      // 清除旧高亮
+      var oldMark = nameEl.querySelector('mark');
+      if (oldMark) oldMark.replaceWith.apply(oldMark, oldMark.childNodes);
+
+      if (name.toLowerCase().indexOf(q) !== -1) {
+        row.classList.remove('search-hidden');
+        catVisible++;
+        // 插入高亮
+        var idx = name.toLowerCase().indexOf(q);
+        nameEl.innerHTML =
+          escapeHTML(name.slice(0, idx)) +
+          '<mark>' + escapeHTML(name.slice(idx, idx + q.length)) + '</mark>' +
+          escapeHTML(name.slice(idx + q.length));
+      } else {
+        row.classList.add('search-hidden');
+      }
+    });
+
+    // 隐藏空子分类标题
+    card.querySelectorAll('.sub-head').forEach(function(sh) {
+      var next = sh.nextElementSibling;
+      var anyVisible = false;
+      while (next && next.classList.contains('item-row')) {
+        if (!next.classList.contains('search-hidden')) anyVisible = true;
+        next = next.nextElementSibling;
+      }
+      if (anyVisible) {
+        sh.classList.remove('search-hidden');
+      } else {
+        sh.classList.add('search-hidden');
+      }
+    });
+
+    // 显示/隐藏整个分类卡片
+    if (catVisible > 0) {
+      card.classList.remove('search-hidden');
+      // 搜索时确保展开
+      if (collapsed[cat.id]) card.classList.add('open');
+    } else {
+      card.classList.add('search-hidden');
+    }
+    totalVisible += catVisible;
+  });
+
+  // 搜索结果提示
+  if (totalVisible > 0) {
+    hintEl.textContent = '找到 ' + totalVisible + ' 项';
+    hintEl.classList.remove('hidden');
+    noResultEl.classList.add('hidden');
+    catsEl.style.display = '';
+  } else {
+    hintEl.classList.add('hidden');
+    noResultEl.classList.remove('hidden');
+    catsEl.style.display = 'none';
+  }
+}
+
+// ==================== 倒计时 =======================================
+
+function updateCountdown() {
+  var now = new Date();
+  var depDate = new Date(DEPARTURE + 'T00:00:00+08:00');
+
+  // 按日历天比较（忽略时分秒）
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var depart = new Date(depDate.getFullYear(), depDate.getMonth(), depDate.getDate());
+  var diffDays = Math.floor((today - depart) / 86400000);
+
+  var card = document.getElementById('countdownCard');
+  var label = document.getElementById('cdLabel');
+  var number = document.getElementById('cdNumber');
+  var dateEl = document.getElementById('cdDate');
+
+  if (diffDays < 0) {
+    // 出发前
+    var remain = Math.abs(diffDays);
+    card.classList.remove('departed');
+    label.textContent = '距离出发';
+    number.textContent = remain === 0 ? '明天' : remain;
+    number.style.fontSize = remain === 0 ? '2rem' : '';
+    dateEl.textContent = DEPARTURE + ' 出发';
+  } else {
+    // 已出发
+    card.classList.add('departed');
+    label.textContent = '已经出发';
+    number.textContent = '第 ' + (diffDays + 1) + ' 天';
+    number.style.fontSize = '1.875rem';
+    dateEl.textContent = DEPARTURE + ' 出发 · 愿你一路平安';
+  }
+}
+
+/** 每天午夜自动刷新倒计时 */
+function scheduleMidnightRefresh() {
+  var now = new Date();
+  var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  var msUntilMidnight = midnight.getTime() - now.getTime();
+  setTimeout(function() {
+    updateCountdown();
+    scheduleMidnightRefresh();
+  }, msUntilMidnight + 600);
+}
+
+// ==================== 启动 =========================================
+
+function init() {
+  // 渲染重要物品置顶
+  renderCritical();
+
+  // 渲染分类
+  renderAllCategories();
+
+  // 倒计时
+  updateCountdown();
+  scheduleMidnightRefresh();
+
+  // 搜索事件
+  var searchInput = document.getElementById('searchInput');
+  var searchClear = document.getElementById('searchClear');
+
+  searchInput.addEventListener('input', function() {
+    doSearch(this.value);
+  });
+
+  searchClear.addEventListener('click', function() {
+    searchInput.value = '';
+    doSearch('');
+    searchInput.focus();
+  });
+
+  searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      doSearch('');
+      searchInput.blur();
+    }
+  });
+
+  // 全选 / 取消全选按钮
+  document.getElementById('btnSelectAll').addEventListener('click', selectAll);
+  document.getElementById('btnDeselectAll').addEventListener('click', deselectAll);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<!-- ====== Service Worker Registration ====== -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then((reg) => console.log('[PWA] SW registered — scope:', reg.scope))
+      .catch((err) => console.warn('[PWA] SW registration failed:', err));
+  });
+}
+</script>
+
+</body>
+</html>
